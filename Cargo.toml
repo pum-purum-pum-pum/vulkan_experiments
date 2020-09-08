@@ -1,0 +1,19 @@
+[package]
+name = "elektrovulkan"
+version = "0.1.0"
+authors = ["vlad <vladzhukovtirko@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tobj = "2.0.2"
+ash = "0.31.0"
+memoffset = "0.5.5"
+glam = {version = "0.9.4", features = ["scalar-math"] }
+winit = "0.22.2"
+sdl2 = "0.34.3"
+[dependencies.image]
+version = "0.23.9"
+default-features = false
+features = ["jpeg"]
