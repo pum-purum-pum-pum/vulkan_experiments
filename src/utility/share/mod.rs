@@ -7,6 +7,7 @@ use ash::version::DeviceV1_0;
 use ash::version::EntryV1_0;
 use ash::version::InstanceV1_0;
 use ash::vk;
+use ash::vk::Handle;
 
 use std::ffi::CString;
 use std::os::raw::c_char;
@@ -95,13 +96,13 @@ pub fn create_instance(
 pub fn create_surface(
     entry: &ash::Entry,
     instance: &ash::Instance,
-    window: &winit::window::Window,
+    window: &sdl2::video::Window,
     screen_width: u32,
     screen_height: u32,
 ) -> SurfaceStuff {
-    let surface = unsafe {
-        platforms::create_surface(entry, instance, window).expect("Failed to create surface.")
-    };
+    let surface_handle = window.vulkan_create_surface(instance.handle().as_raw() as usize).unwrap();
+    let surface = vk::SurfaceKHR::from_raw(surface_handle);        
+
     let surface_loader = ash::extensions::khr::Surface::new(entry, instance);
 
     SurfaceStuff {
@@ -351,7 +352,7 @@ pub fn create_swapchain(
     instance: &ash::Instance,
     device: &ash::Device,
     physical_device: vk::PhysicalDevice,
-    window: &winit::window::Window,
+    window: &sdl2::video::Window,
     surface_stuff: &SurfaceStuff,
     queue_family: &QueueFamilyIndices,
 ) -> SwapChainStuff {
@@ -466,27 +467,26 @@ pub fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
 
 pub fn choose_swapchain_extent(
     capabilities: &vk::SurfaceCapabilitiesKHR,
-    window: &winit::window::Window,
+    window: &sdl2::video::Window,
 ) -> vk::Extent2D {
     if capabilities.current_extent.width != u32::max_value() {
         capabilities.current_extent
     } else {
 
-        let window_size = window
-            .inner_size();
+        let window_size = window.size();
         println!(
             "\t\tInner Window Size: ({}, {})",
-            window_size.width, window_size.height
+            window_size.0, window_size.1
         );
 
         vk::Extent2D {
             width: clamp(
-                window_size.width as u32,
+                window_size.0 as u32,
                 capabilities.min_image_extent.width,
                 capabilities.max_image_extent.width,
             ),
             height: clamp(
-                window_size.height as u32,
+                window_size.1 as u32,
                 capabilities.min_image_extent.height,
                 capabilities.max_image_extent.height,
             ),

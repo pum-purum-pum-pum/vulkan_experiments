@@ -11,7 +11,7 @@ tobj = "2.0.2"
 ash = "0.31.0"
 memoffset = "0.5.5"
 glam = {version = "0.9.4", features = ["scalar-math"] }
-winit = "0.22.2"
+# winit = "0.22.2"
 sdl2 = "0.34.3"
 [dependencies.image]
 version = "0.23.9"

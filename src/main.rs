@@ -1,6 +1,10 @@
-use ash;
-
 mod utility;
+
+use ash;
+use ash::vk::Handle;
+use ash::version::DeviceV1_0;
+use ash::version::InstanceV1_0;
+use ash::vk;
 
 use crate::{
     utility::constants::*,
@@ -10,9 +14,7 @@ use crate::{
     utility::window::{ProgramProc, VulkanApp},
 };
 
-use ash::version::DeviceV1_0;
-use ash::version::InstanceV1_0;
-use ash::vk;
+use sdl2::EventPump;
 // use cgmath::{Deg, Matrix4, Point3, Vector3};
 use glam::{Mat4, Vec3};
 use memoffset::offset_of;
@@ -88,7 +90,7 @@ pub const RECT_TEX_COORD_VERTICES_DATA: [VertexV2; 4] = [
 ];
 
 struct VulkanApp25 {
-    window: winit::window::Window,
+    window: sdl2::video::Window,
 
     // vulkan stuff
     _entry: ash::Entry,
@@ -147,11 +149,15 @@ struct VulkanApp25 {
 }
 
 impl VulkanApp25 {
-    pub fn new(event_loop: &winit::event_loop::EventLoop<()>) -> VulkanApp25 {
-        let window =
-            utility::window::init_window(&event_loop, WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-        // init vulkan stuff
+    pub fn new(event_pump: &EventPump, sdl_context: sdl2::Sdl) -> VulkanApp25 {
+        let video_subsystem = sdl_context.video().unwrap();
+    
+        let window = video_subsystem.window("Window", 800, 600)
+            .vulkan()
+            .build()
+            .unwrap();
+    
+        let instance_extensions = window.vulkan_instance_extensions().unwrap();
         let entry = ash::Entry::new().unwrap();
         let instance = share::create_instance(
             &entry,
@@ -159,8 +165,11 @@ impl VulkanApp25 {
             VALIDATION.is_enable,
             &VALIDATION.required_validation_layers.to_vec(),
         );
+        
         let surface_stuff =
             share::create_surface(&entry, &instance, &window, WINDOW_WIDTH, WINDOW_HEIGHT);
+            
+            
         let (debug_utils_loader, debug_merssager) =
             setup_debug_utils(VALIDATION.is_enable, &entry, &instance);
         let physical_device =
@@ -1078,15 +1087,54 @@ impl VulkanApp for VulkanApp25 {
         self.is_framebuffer_resized = true;
     }
 
-    fn window_ref(&self) -> &winit::window::Window {
+    fn window_ref(&self) -> & sdl2::video::Window {
         &self.window
     }
 }
 
 fn main() {
-    let program_proc = ProgramProc::new();
-    let vulkan_app = VulkanApp25::new(&program_proc.event_loop);
+    let (sld_context, program_proc) = ProgramProc::new();
+    let vulkan_app = VulkanApp25::new(&program_proc.event_pump, sld_context);
 
     program_proc.main_loop(vulkan_app);
 }
-// -------------------------------------------------------------------------------------------
+// // -------------------------------------------------------------------------------------------
+
+// use sdl2::event::Event;
+// use sdl2::keyboard::Keycode;
+
+// fn main() {
+//     let sdl_context = sdl2::init().unwrap();
+//     let video_subsystem = sdl_context.video().unwrap();
+
+//     let window = video_subsystem.window("Window", 800, 600)
+//         .vulkan()
+//         .build()
+//         .unwrap();
+
+//     let instance_extensions = window.vulkan_instance_extensions().unwrap();
+//     let entry = ash::Entry::new().unwrap();
+//     let instance = share::create_instance(
+//         &entry,
+//         WINDOW_TITLE,
+//         VALIDATION.is_enable,
+//         &VALIDATION.required_validation_layers.to_vec(),
+//     );
+    
+//     let surface_handle = window.vulkan_create_surface(instance.handle().as_raw() as usize).unwrap();
+//     let surface = vk::SurfaceKHR::from_raw(surface_handle);
+
+//     let mut event_pump = sdl_context.event_pump().unwrap();
+
+//     'running: loop {
+//         for event in event_pump.poll_iter() {
+//             match event {
+//                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+//                     break 'running
+//                 },
+//                 _ => {}
+//             }
+//         }
+//         ::std::thread::sleep(::std::time::Duration::new(0, 1_000_000_000u32 / 60));
+//     }
+// }
