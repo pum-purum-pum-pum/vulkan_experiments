@@ -13,6 +13,8 @@ memoffset = "0.5.5"
 glam = {version = "0.9.4", features = ["scalar-math"] }
 # winit = "0.22.2"
 sdl2 = "0.34.3"
+ab_glyph = "0.2.5"
+
 [dependencies.image]
 version = "0.23.9"
 default-features = false

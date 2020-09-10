@@ -1,6 +1,6 @@
 use ash::vk;
 use image;
-use image::GenericImageView;
+use image::{GenericImageView, DynamicImage};
 
 use std::cmp::max;
 use std::ffi::CString;
@@ -948,9 +948,8 @@ pub fn create_texture_image(
     command_pool: vk::CommandPool,
     submit_queue: vk::Queue,
     device_memory_properties: &vk::PhysicalDeviceMemoryProperties,
-    image_path: &Path,
+    mut image_object: DynamicImage,
 ) -> (vk::Image, vk::DeviceMemory) {
-    let mut image_object = image::open(image_path).unwrap(); // this function is slow in debug mode.
     image_object = image_object.flipv();
     let (image_width, image_height) = (image_object.width(), image_object.height());
     let image_data = match &image_object {
