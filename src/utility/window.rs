@@ -39,7 +39,7 @@ impl ProgramProc {
     pub fn new() -> (sdl2::Sdl, ProgramProc) {
         let sdl_context = sdl2::init().unwrap();
         // init window stuff
-        let mut event_pump = sdl_context.event_pump().unwrap();
+        let event_pump = sdl_context.event_pump().unwrap();
 
         (sdl_context, ProgramProc { event_pump })
     }

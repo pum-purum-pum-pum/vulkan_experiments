@@ -16,7 +16,7 @@ use crate::{
 
 use sdl2::EventPump;
 // use cgmath::{Deg, Matrix4, Point3, Vector3};
-use glam::{Mat4, Vec3};
+use glam::{Mat4, Vec3, vec4, mat4};
 use memoffset::offset_of;
 
 use std::ffi::CString;
@@ -25,7 +25,7 @@ use std::ptr;
 
 // Constants
 const WINDOW_TITLE: &'static str = "25.Texture Mapping";
-const TEXTURE_PATH: &'static str = "assets/texture.jpg";
+const TEXTURE_PATH: &'static str = "assets/img.png";
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -68,24 +68,24 @@ impl VertexV2 {
 }
 pub const RECT_TEX_COORD_VERTICES_DATA: [VertexV2; 4] = [
     VertexV2 {
-        pos: [-0.75, -0.75],
+        pos: [-0.5, -0.5],
         color: [1.0, 0.0, 0.0],
-        tex_coord: [1.0, 0.0],
-    },
-    VertexV2 {
-        pos: [0.75, -0.75],
-        color: [0.0, 1.0, 0.0],
         tex_coord: [0.0, 0.0],
     },
     VertexV2 {
-        pos: [0.75, 0.75],
-        color: [0.0, 0.0, 1.0],
-        tex_coord: [0.0, 1.0],
+        pos: [0.5, -0.5],
+        color: [0.0, 1.0, 0.0],
+        tex_coord: [1.0, 0.0],
     },
     VertexV2 {
-        pos: [-0.75, 0.75],
-        color: [1.0, 1.0, 1.0],
+        pos: [0.5, 0.5],
+        color: [0.0, 0.0, 1.0],
         tex_coord: [1.0, 1.0],
+    },
+    VertexV2 {
+        pos: [-0.5, 0.5],
+        color: [1.0, 1.0, 1.0],
+        tex_coord: [0.0, 1.0],
     },
 ];
 
@@ -150,10 +150,13 @@ struct VulkanApp25 {
 
 impl VulkanApp25 {
     pub fn new(event_pump: &EventPump, sdl_context: sdl2::Sdl) -> VulkanApp25 {
-        let video_subsystem = sdl_context.video().unwrap();
+        let video_subsystem = sdl_context.video().
+        unwrap();
     
         let window = video_subsystem.window("Window", 1500, 700)
             .vulkan()
+            .position_centered()
+            .resizable()
             .build()
             .unwrap();
     
@@ -215,9 +218,9 @@ impl VulkanApp25 {
             swapchain_stuff.swapchain_extent,
         );
         let command_pool = share::v1::create_command_pool(&device, &queue_family);
-        // let mut image_object = image::open(Path::new(TEXTURE_PATH),).unwrap(); // this function is slow in debug mode.
         let font = FontRef::try_from_slice(include_bytes!("../fonts/DejaVuSansMono.ttf")).unwrap();
         let image_object = draw_image(font);
+        let mut image_object = image::open(Path::new(TEXTURE_PATH),).unwrap(); // this function is slow in debug mode.
         let (texture_image, texture_image_memory) = share::v1::create_texture_image(
             &device,
             command_pool,
@@ -271,7 +274,27 @@ impl VulkanApp25 {
         );
         let sync_ojbects = share::v1::create_sync_objects(&device, MAX_FRAMES_IN_FLIGHT);
 
-        // cleanup(); the 'drop' function will take care of it.
+        // let view = Mat4::look_at_rh(
+        //     Vec3::new(0.0, 0.0, 1.0),
+        //     Vec3::new(0.0, 0.0, 0.0),
+        //     Vec3::new(0.0, 1.0, 0.0),
+        // );
+        // let proj = {
+        //     // let w = WINDOW_WIDTH as f32;
+        //     // let h = WINDOW_HEIGHT as f32;
+        //     let w = 1.;
+        //     let h = 1.;
+        //     let proj = Mat4::orthographic_rh(
+        //         -w/2., 
+        //         w/2., 
+        //         -h/2., 
+        //         h/2., 
+        //         10.,
+        //         -10.,
+        //     );
+        //     proj
+        // };
+        let (view, proj) = VulkanApp25::create_camera(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32);
         VulkanApp25 {
             // winit stuff
             window,
@@ -313,27 +336,10 @@ impl VulkanApp25 {
             vertex_buffer_memory,
             index_buffer,
             index_buffer_memory,
-
             uniform_transform: UniformBufferObject {
                 model: Mat4::identity(),//Matrix4::from_angle_z(Deg(0.0)),
-                view: Mat4::look_at_rh(
-                    Vec3::new(0.0, 0.0, 5.0),
-                    Vec3::new(0.0, 0.0, 0.0),
-                    Vec3::new(0.0, 1.0, 0.0),
-                ),
-                proj: {
-                    let mut proj = Mat4::perspective_rh(
-                        3.14159 * 45. / 360. ,
-                        swapchain_stuff.swapchain_extent.width as f32
-                            / swapchain_stuff.swapchain_extent.height as f32,
-                        0.1,
-                        10.0,
-                    );
-                    // let mut proj = Mat4::orthographic_lh(-.1, 1., -1., 1., 0.1, 10)
-                    proj.y_axis_mut()[1] = proj.y_axis()[1] * -1.;
-                    // proj[1][1] = proj[1][1] * -1.0;
-                    proj
-                },
+                view,
+                proj,
             },
             uniform_buffers,
             uniform_buffers_memory,
@@ -351,6 +357,33 @@ impl VulkanApp25 {
 
             is_framebuffer_resized: false,
         }
+    }
+
+    fn create_camera(width: f32, height: f32) -> (Mat4, Mat4){
+        let zoom = 1.;
+        // let w = 1.;
+        // let h = 1.;
+        let w = 1. / zoom;
+        let h = (height / width) /zoom;
+        let view = Mat4::look_at_rh(
+            Vec3::new(0.0, 0.0, 1.0),
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        );
+        let proj = {
+            // let w = WINDOW_WIDTH as f32;
+            // let h = WINDOW_HEIGHT as f32;
+            let proj = Mat4::orthographic_rh(
+                -w/2., 
+                w/2., 
+                -h/2., 
+                h/2., 
+                10.,
+                -10.,
+            );
+            proj
+        };
+        (view, proj)
     }
 
     fn create_descriptor_pool(
@@ -607,7 +640,14 @@ impl VulkanApp25 {
     }
 
     fn update_uniform_buffer(&mut self, current_image: usize, _delta_time: f32) {
-        let ubos = [self.uniform_transform.clone()];
+        let (width, height) = self.window.size();
+        let (view, proj) = VulkanApp25::create_camera(width as f32, height as f32);
+        let ubo = UniformBufferObject {
+            model: Mat4::identity(),//Matrix4::from_angle_z(Deg(0.0)),
+            view,
+            proj,
+        };
+        let ubos = [ubo];
 
         let buffer_size = (std::mem::size_of::<UniformBufferObject>() * ubos.len()) as u64;
 
@@ -1186,6 +1226,7 @@ fn draw_image(font: impl Font) -> DynamicImage {
             });
         }
     }
+    // image.save(Path::new("img.png")).unwrap();
     DynamicImage::ImageRgba8(image)
 }
 

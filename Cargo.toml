@@ -18,4 +18,4 @@ ab_glyph = "0.2.5"
 [dependencies.image]
 version = "0.23.9"
 default-features = false
-features = ["jpeg"]
+features = ["jpeg", "png"]
