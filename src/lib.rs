@@ -1,5 +1,6 @@
 mod utility;
 mod camera;
+mod encoder;
 
 use ash;
 use ash::version::DeviceV1_0;
@@ -36,6 +37,7 @@ pub struct VertexV2 {
     pub color: [f32; 3],
     pub tex_coord: [f32; 2],
 }
+
 impl VertexV2 {
     pub fn get_binding_description() -> [vk::VertexInputBindingDescription; 1] {
         [vk::VertexInputBindingDescription {
@@ -128,10 +130,10 @@ pub struct Context {
     texture_sampler: vk::Sampler,
     texture_image_memory: vk::DeviceMemory,
 
-    vertex_buffer: vk::Buffer,
-    vertex_buffer_memory: vk::DeviceMemory,
-    index_buffer: vk::Buffer,
-    index_buffer_memory: vk::DeviceMemory,
+    // vertex_buffer: vk::Buffer,
+    // vertex_buffer_memory: vk::DeviceMemory,
+    // index_buffer: vk::Buffer,
+    // index_buffer_memory: vk::DeviceMemory,
 
     uniform_transform: UniformBufferObject,
     uniform_buffers: Vec<vk::Buffer>,
@@ -141,7 +143,7 @@ pub struct Context {
     descriptor_sets: Vec<vk::DescriptorSet>,
 
     command_pool: vk::CommandPool,
-    command_buffers: Vec<vk::CommandBuffer>,
+    // command_buffers: Vec<vk::CommandBuffer>,
 
     image_available_semaphores: Vec<vk::Semaphore>,
     render_finished_semaphores: Vec<vk::Semaphore>,
@@ -314,10 +316,10 @@ impl Context {
             texture_sampler,
             texture_image_memory,
 
-            vertex_buffer,
-            vertex_buffer_memory,
-            index_buffer,
-            index_buffer_memory,
+            // vertex_buffer,
+            // vertex_buffer_memory,
+            // index_buffer,
+            // index_buffer_memory,
             uniform_transform: UniformBufferObject {
                 model: Mat4::identity(),//Matrix4::from_angle_z(Deg(0.0)),
                 view: camera.view,
@@ -330,7 +332,7 @@ impl Context {
             descriptor_sets,
 
             command_pool,
-            command_buffers,
+            // command_buffers,
 
             image_available_semaphores: sync_ojbects.image_available_semaphores,
             render_finished_semaphores: sync_ojbects.render_finished_semaphores,
@@ -865,11 +867,11 @@ impl Drop for Context {
                     .free_memory(self.uniform_buffers_memory[i], None);
             }
 
-            self.device.destroy_buffer(self.index_buffer, None);
-            self.device.free_memory(self.index_buffer_memory, None);
+            // self.device.destroy_buffer(self.index_buffer, None);
+            // self.device.free_memory(self.index_buffer_memory, None);
 
-            self.device.destroy_buffer(self.vertex_buffer, None);
-            self.device.free_memory(self.vertex_buffer_memory, None);
+            // self.device.destroy_buffer(self.vertex_buffer, None);
+            // self.device.free_memory(self.vertex_buffer_memory, None);
 
             self.device.destroy_sampler(self.texture_sampler, None);
             self.device
@@ -897,96 +899,96 @@ impl Drop for Context {
 
 impl VulkanApp for Context {
     fn draw_frame(&mut self, delta_time: f32) {
-        let wait_fences = [self.in_flight_fences[self.current_frame]];
+        // let wait_fences = [self.in_flight_fences[self.current_frame]];
 
-        unsafe {
-            self.device
-                .wait_for_fences(&wait_fences, true, std::u64::MAX)
-                .expect("Failed to wait for Fence!");
-        }
+        // unsafe {
+        //     self.device
+        //         .wait_for_fences(&wait_fences, true, std::u64::MAX)
+        //         .expect("Failed to wait for Fence!");
+        // }
 
-        let (image_index, _is_sub_optimal) = unsafe {
-            let result = self.swapchain_loader.acquire_next_image(
-                self.swapchain,
-                std::u64::MAX,
-                self.image_available_semaphores[self.current_frame],
-                vk::Fence::null(),
-            );
-            match result {
-                Ok(image_index) => image_index,
-                Err(vk_result) => match vk_result {
-                    vk::Result::ERROR_OUT_OF_DATE_KHR => {
-                        self.recreate_swapchain();
-                        return;
-                    }
-                    _ => panic!("Failed to acquire Swap Chain Image!"),
-                },
-            }
-        };
+        // let (image_index, _is_sub_optimal) = unsafe {
+        //     let result = self.swapchain_loader.acquire_next_image(
+        //         self.swapchain,
+        //         std::u64::MAX,
+        //         self.image_available_semaphores[self.current_frame],
+        //         vk::Fence::null(),
+        //     );
+        //     match result {
+        //         Ok(image_index) => image_index,
+        //         Err(vk_result) => match vk_result {
+        //             vk::Result::ERROR_OUT_OF_DATE_KHR => {
+        //                 self.recreate_swapchain();
+        //                 return;
+        //             }
+        //             _ => panic!("Failed to acquire Swap Chain Image!"),
+        //         },
+        //     }
+        // };
 
-        self.update_uniform_buffer(image_index as usize, delta_time);
+        // self.update_uniform_buffer(image_index as usize, delta_time);
 
-        let wait_semaphores = [self.image_available_semaphores[self.current_frame]];
-        let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
-        let signal_semaphores = [self.render_finished_semaphores[self.current_frame]];
+        // let wait_semaphores = [self.image_available_semaphores[self.current_frame]];
+        // let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
+        // let signal_semaphores = [self.render_finished_semaphores[self.current_frame]];
 
-        let submit_infos = [vk::SubmitInfo {
-            s_type: vk::StructureType::SUBMIT_INFO,
-            p_next: ptr::null(),
-            wait_semaphore_count: wait_semaphores.len() as u32,
-            p_wait_semaphores: wait_semaphores.as_ptr(),
-            p_wait_dst_stage_mask: wait_stages.as_ptr(),
-            command_buffer_count: 1,
-            p_command_buffers: &self.command_buffers[image_index as usize],
-            signal_semaphore_count: signal_semaphores.len() as u32,
-            p_signal_semaphores: signal_semaphores.as_ptr(),
-        }];
+        // let submit_infos = [vk::SubmitInfo {
+        //     s_type: vk::StructureType::SUBMIT_INFO,
+        //     p_next: ptr::null(),
+        //     wait_semaphore_count: wait_semaphores.len() as u32,
+        //     p_wait_semaphores: wait_semaphores.as_ptr(),
+        //     p_wait_dst_stage_mask: wait_stages.as_ptr(),
+        //     command_buffer_count: 1,
+        //     p_command_buffers: &self.command_buffers[image_index as usize],
+        //     signal_semaphore_count: signal_semaphores.len() as u32,
+        //     p_signal_semaphores: signal_semaphores.as_ptr(),
+        // }];
 
-        unsafe {
-            self.device
-                .reset_fences(&wait_fences)
-                .expect("Failed to reset Fence!");
+        // unsafe {
+        //     self.device
+        //         .reset_fences(&wait_fences)
+        //         .expect("Failed to reset Fence!");
 
-            self.device
-                .queue_submit(
-                    self.graphics_queue,
-                    &submit_infos,
-                    self.in_flight_fences[self.current_frame],
-                )
-                .expect("Failed to execute queue submit.");
-        }
+        //     self.device
+        //         .queue_submit(
+        //             self.graphics_queue,
+        //             &submit_infos,
+        //             self.in_flight_fences[self.current_frame],
+        //         )
+        //         .expect("Failed to execute queue submit.");
+        // }
 
-        let swapchains = [self.swapchain];
+        // let swapchains = [self.swapchain];
 
-        let present_info = vk::PresentInfoKHR {
-            s_type: vk::StructureType::PRESENT_INFO_KHR,
-            p_next: ptr::null(),
-            wait_semaphore_count: 1,
-            p_wait_semaphores: signal_semaphores.as_ptr(),
-            swapchain_count: 1,
-            p_swapchains: swapchains.as_ptr(),
-            p_image_indices: &image_index,
-            p_results: ptr::null_mut(),
-        };
+        // let present_info = vk::PresentInfoKHR {
+        //     s_type: vk::StructureType::PRESENT_INFO_KHR,
+        //     p_next: ptr::null(),
+        //     wait_semaphore_count: 1,
+        //     p_wait_semaphores: signal_semaphores.as_ptr(),
+        //     swapchain_count: 1,
+        //     p_swapchains: swapchains.as_ptr(),
+        //     p_image_indices: &image_index,
+        //     p_results: ptr::null_mut(),
+        // };
 
-        let result = unsafe {
-            self.swapchain_loader
-                .queue_present(self.present_queue, &present_info)
-        };
+        // let result = unsafe {
+        //     self.swapchain_loader
+        //         .queue_present(self.present_queue, &present_info)
+        // };
 
-        let is_resized = match result {
-            Ok(_) => self.is_framebuffer_resized,
-            Err(vk_result) => match vk_result {
-                vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR => true,
-                _ => panic!("Failed to execute queue present."),
-            },
-        };
-        if is_resized {
-            self.is_framebuffer_resized = false;
-            self.recreate_swapchain();
-        }
+        // let is_resized = match result {
+        //     Ok(_) => self.is_framebuffer_resized,
+        //     Err(vk_result) => match vk_result {
+        //         vk::Result::ERROR_OUT_OF_DATE_KHR | vk::Result::SUBOPTIMAL_KHR => true,
+        //         _ => panic!("Failed to execute queue present."),
+        //     },
+        // };
+        // if is_resized {
+        //     self.is_framebuffer_resized = false;
+        //     self.recreate_swapchain();
+        // }
 
-        self.current_frame = (self.current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+        // self.current_frame = (self.current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
     fn recreate_swapchain(&mut self) {
@@ -1041,18 +1043,18 @@ impl VulkanApp for Context {
             &self.swapchain_imageviews,
             self.swapchain_extent,
         );
-        self.command_buffers = Context::create_command_buffers(
-            &self.device,
-            self.command_pool,
-            self.graphics_pipeline,
-            &self.swapchain_framebuffers,
-            self.render_pass,
-            self.swapchain_extent,
-            self.vertex_buffer,
-            self.index_buffer,
-            self.pipeline_layout,
-            &self.descriptor_sets,
-        );
+        // self.command_buffers = Context::create_command_buffers(
+        //     &self.device,
+        //     self.command_pool,
+        //     self.graphics_pipeline,
+        //     &self.swapchain_framebuffers,
+        //     self.render_pass,
+        //     self.swapchain_extent,
+        //     self.vertex_buffer,
+        //     self.index_buffer,
+        //     self.pipeline_layout,
+        //     &self.descriptor_sets,
+        // );
     }
 
     fn cleanup_swapchain(&self) {
